@@ -5,7 +5,7 @@
     state: latest
   with_items:
     - git
-	- gcc
+    - gcc
     - glibc
     - glibc-common
     - gd
