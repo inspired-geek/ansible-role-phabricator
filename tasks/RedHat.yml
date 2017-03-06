@@ -40,12 +40,12 @@
   tags:
     - fpm
   
-- name: copy nginx config                                                                           │    command: /var/www/phabricator/bin/storage upgrade --force
-  copy:                                                                                             │
-    src: nginx-phab.conf                                                                           │  when: gitpull.results[2].changed or ('Database Not Initialized' in first_install.stdout_lines[0])
-    dest: /etc/nginx/conf.d/phab.conf                                                                        │
-  notify: 'reload nginx'                                                                            │
-  tags:                                                                                             │- name: start daemons
+- name: copy nginx config
+  copy:
+    src: nginx-phab.conf
+    dest: /etc/nginx/conf.d/phab.conf
+  notify: 'reload nginx'
+  tags:
     - nginx
 
 - name: make sure /var/www dir exists
