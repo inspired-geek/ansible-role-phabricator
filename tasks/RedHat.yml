@@ -1,0 +1,107 @@
+---
+- name: install prerequisities
+  package:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - git
+	- gcc
+    - glibc
+    - glibc-common
+    - gd
+    - gd-devel
+    - php
+    - php-cli
+    - php-mysql
+    - php-process
+    - php-devel
+    - php-gd
+    - php-pecl-apc
+    - php-pecl-json
+    - php-mbstring
+    - php-fpm
+    - pcre-devel
+    - php-pear
+  tags:
+    - preinstall
+
+- name: install apc
+  pear:
+    name: pecl/apc
+    state: latest
+  tags:
+    - preinstall
+
+- name: copy php-fpm config
+  copy:
+    src: fpm-phab.conf
+    dest: /etc/php-fpm.d/phab.conf
+  notify: 'reload php-fpm'
+  tags:
+    - fpm
+  
+- name: copy nginx config                                                                           │    command: /var/www/phabricator/bin/storage upgrade --force
+  copy:                                                                                             │
+    src: nginx-phab.conf                                                                           │  when: gitpull.results[2].changed or ('Database Not Initialized' in first_install.stdout_lines[0])
+    dest: /etc/nginx/conf.d/phab.conf                                                                        │
+  notify: 'reload nginx'                                                                            │
+  tags:                                                                                             │- name: start daemons
+    - nginx
+
+- name: make sure /var/www dir exists
+  file:
+    path: /src/www
+    state: directory
+  tags:
+    - distr
+
+- name: checkout latest distribs
+  git:
+    repo: "{{ item.repo }}"
+    dest: "{{ item.dest }}"
+  with_items:
+    - { repo: 'https://github.com/phacility/libphutil.git', dest: '/var/www/libphutil'}
+    - { repo: 'https://github.com/phacility/arcanist.git', dest: '/var/www/arcanist'}
+    - { repo: 'https://github.com/phacility/phabricator.git', dest: '/var/www/phabricator'}
+  register: gitpull
+  tags:
+    - distr
+
+- name: check if first install
+  command: /var/www/phabricator/bin/storage status
+  register: first_install
+  changed_when: "first_install.rc != 0"
+  ignore_errors: true
+  no_log: true
+  tags:
+    - install
+
+- block:
+  - name: stop php-fpm
+    service:
+      name: php-fpm
+      state: stopped
+
+  - name: stop daemons
+    command: /var/www/phabricator/bin/phd stop --force
+
+  - name: install/upgrade storage
+    command: /var/www/phabricator/bin/storage upgrade --force
+
+  when: gitpull.results[2].changed or ('Database Not Initialized' in first_install.stdout_lines[0])
+  tags:
+    - install
+
+- name: start daemons
+  command: /var/www/phabricator/bin/phd start --force
+  tags:
+    - install
+
+
+- name: start php-fpm
+  service:
+    name: php-fpm
+    state: running
+    enabled: yes
+  tags:
+    - install
