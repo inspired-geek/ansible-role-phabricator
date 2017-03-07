@@ -22,7 +22,7 @@ script:
   # Check syntax of ansible playbook
   - sudo docker exec centos-${OS_VERSION} ansible-playbook /etc/ansible/roles/phabricator/tests/test.yml --syntax-check
   # Run ansible playbook
-  - sudo docker exec centos-${OS_VERSION} ansible-playbook /etc/ansible/roles/phabricator/tests/test.yml
+#  - sudo docker exec centos-${OS_VERSION} ansible-playbook /etc/ansible/roles/phabricator/tests/test.yml
 
 after_script:
   - sudo docker stop centos-${OS_VERSION}
